@@ -6,6 +6,7 @@ git clone https://github.com/babydepdev/crypto-nontawach.git
 
 # 2. Go into the project directory
 cd crypto-nontawach
+docker-compose up -d
 
 # 3. Install dependencies
 npm install
