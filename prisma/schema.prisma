@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id                   String           @id @default(uuid())
+  name                 String
+  email                String           @unique
+  password             String
+  isActivated          Boolean          @default(false)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @default(now()) @updatedAt
+  WithDrawals          WithDrawals[]
+  sentTransactions     Transactions[]   @relation("SentTransactions")
+  receivedTransactions Transactions[]   @relation("ReceivedTransactions")
+  Orders               Orders[]
+  WalletsAccount       WalletsAccount[]
+}
+
+model Currency {
+  id           Int            @id @default(autoincrement())
+  name         String
+  abbreviation String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+  WithDrawals  WithDrawals[]
+  Transactions Transactions[]
+  Orders       Orders[]
+  WalletsAsset WalletsAsset[]
+}
+
+enum WalletsAccountsType {
+  spot
+  margin
+  futures
+  p2p
+  earn
+}
+
+model WalletsAccount {
+  id           String              @id @unique @default(uuid())
+  user_id      String
+  User         Users               @relation(fields: [user_id], references: [id])
+  type         WalletsAccountsType
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  WalletsAsset WalletsAsset[]
+
+  @@unique([user_id, type])
+}
+
+model WalletsAsset {
+  id               String         @id @unique @default(uuid())
+  walletAccount_id String
+  WalletAccount    WalletsAccount @relation(fields: [walletAccount_id], references: [id])
+  currency_id      Int
+  Currency         Currency       @relation(fields: [currency_id], references: [id])
+  balance          Decimal        @default(0)
+  locked           Decimal        @default(0)
+
+  @@unique([walletAccount_id, currency_id])
+}
+
+model WithDrawals {
+  id             Int      @id @default(autoincrement())
+  user_id        String
+  User           Users    @relation(fields: [user_id], references: [id])
+  currency_id    Int
+  Currency       Currency @relation(fields: [currency_id], references: [id])
+  amount         Decimal
+  wallet_address String
+  status         String   @default("pending")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+}
+
+enum TransactionType {
+  deposit
+  withdrawal
+}
+
+enum TransactionStatus {
+  pending
+  completed
+}
+
+model Transactions {
+  id           String            @id @default(uuid())
+  form_user_id String
+  FormUser     Users             @relation("SentTransactions", fields: [form_user_id], references: [id])
+  to_user_id   String
+  ToUser       Users             @relation("ReceivedTransactions", fields: [to_user_id], references: [id])
+  currency_id  Int
+  Currency     Currency          @relation(fields: [currency_id], references: [id])
+  amount       Decimal
+  price        Decimal
+  type         TransactionType   @default(deposit)
+  status       TransactionStatus @default(pending)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model FiatCurrency {
+  id           Int      @id @default(autoincrement())
+  name         String
+  abbreviation String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  Orders       Orders[]
+}
+
+enum OrderType {
+  buy
+  sell
+}
+
+enum OrderStatus {
+  pending
+  processing
+  completed
+  cancelled
+}
+
+model Orders {
+  id           String       @id @default(uuid())
+  user_id      String
+  User         Users        @relation(fields: [user_id], references: [id])
+  currency_id  Int
+  Currency     Currency     @relation(fields: [currency_id], references: [id])
+  fiat_id      Int
+  FiatCurrency FiatCurrency @relation(fields: [fiat_id], references: [id])
+  type         OrderType    @default(buy)
+  status       OrderStatus  @default(pending)
+  amount       Decimal
+  price        Decimal
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @default(now()) @updatedAt
+}
