@@ -15,7 +15,6 @@ npm install
 npm run dev
 
 API test with Postman
-
-url : https://frtetest.postman.co/workspace/crypto~580b12a6-5aa4-479c-97dc-50e5724bcd6c/request/26693974-ed708f57-32ed-4d07-aaed-740123228c94?action=share&creator=26693974&ctx=documentation
+ url : https://frtetest.postman.co/workspace/crypto~580b12a6-5aa4-479c-97dc-50e5724bcd6c/request/26693974-ed708f57-32ed-4d07-aaed-740123228c94?action=share&creator=26693974&ctx=documentation
 
 ```
