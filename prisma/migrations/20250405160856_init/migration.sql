@@ -1,8 +1,8 @@
 -- CreateEnum
-CREATE TYPE "TransactionType" AS ENUM ('deposit', 'withdrawal');
+CREATE TYPE "WalletsAccountsType" AS ENUM ('spot', 'margin', 'futures', 'p2p', 'earn');
 
 -- CreateEnum
-CREATE TYPE "TransactionStatus" AS ENUM ('pending', 'completed');
+CREATE TYPE "TransactionType" AS ENUM ('deposit', 'withdrawal');
 
 -- CreateEnum
 CREATE TYPE "OrderType" AS ENUM ('buy', 'sell');
@@ -24,6 +24,18 @@ CREATE TABLE "Users" (
 );
 
 -- CreateTable
+CREATE TABLE "BankAccount" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "name" TEXT NOT NULL DEFAULT '',
+    "number" TEXT NOT NULL DEFAULT '',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BankAccount_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Currency" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
@@ -35,15 +47,27 @@ CREATE TABLE "Currency" (
 );
 
 -- CreateTable
-CREATE TABLE "Wallets" (
+CREATE TABLE "WalletsAccount" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
-    "currency_id" INTEGER NOT NULL,
-    "balance" DECIMAL(65,30) NOT NULL,
+    "type" "WalletsAccountsType" NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Wallets_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "WalletsAccount_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "WalletsAsset" (
+    "id" TEXT NOT NULL,
+    "walletAccount_id" TEXT NOT NULL,
+    "currency_id" INTEGER NOT NULL,
+    "balance" DECIMAL(65,30) NOT NULL DEFAULT 0,
+    "locked" DECIMAL(65,30) NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "WalletsAsset_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -66,10 +90,10 @@ CREATE TABLE "Transactions" (
     "form_user_id" TEXT NOT NULL,
     "to_user_id" TEXT NOT NULL,
     "currency_id" INTEGER NOT NULL,
+    "order_id" TEXT,
     "amount" DECIMAL(65,30) NOT NULL,
     "price" DECIMAL(65,30) NOT NULL,
     "type" "TransactionType" NOT NULL DEFAULT 'deposit',
-    "status" "TransactionStatus" NOT NULL DEFAULT 'pending',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -103,20 +127,52 @@ CREATE TABLE "Orders" (
     CONSTRAINT "Orders_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "FavouriteCurrency" (
+    "id" SERIAL NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "currency_id" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "FavouriteCurrency_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Users_email_key" ON "Users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Wallets_id_key" ON "Wallets"("id");
+CREATE UNIQUE INDEX "BankAccount_id_key" ON "BankAccount"("id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Wallets_user_id_currency_id_key" ON "Wallets"("user_id", "currency_id");
+CREATE UNIQUE INDEX "BankAccount_user_id_key" ON "BankAccount"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletsAccount_id_key" ON "WalletsAccount"("id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletsAccount_user_id_key" ON "WalletsAccount"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletsAsset_id_key" ON "WalletsAsset"("id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WalletsAsset_walletAccount_id_key" ON "WalletsAsset"("walletAccount_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Transactions_order_id_key" ON "Transactions"("order_id");
 
 -- AddForeignKey
-ALTER TABLE "Wallets" ADD CONSTRAINT "Wallets_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "Users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "BankAccount" ADD CONSTRAINT "BankAccount_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "Users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Wallets" ADD CONSTRAINT "Wallets_currency_id_fkey" FOREIGN KEY ("currency_id") REFERENCES "Currency"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "WalletsAccount" ADD CONSTRAINT "WalletsAccount_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "Users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WalletsAsset" ADD CONSTRAINT "WalletsAsset_walletAccount_id_fkey" FOREIGN KEY ("walletAccount_id") REFERENCES "WalletsAccount"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WalletsAsset" ADD CONSTRAINT "WalletsAsset_currency_id_fkey" FOREIGN KEY ("currency_id") REFERENCES "Currency"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "WithDrawals" ADD CONSTRAINT "WithDrawals_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "Users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -134,6 +190,9 @@ ALTER TABLE "Transactions" ADD CONSTRAINT "Transactions_to_user_id_fkey" FOREIGN
 ALTER TABLE "Transactions" ADD CONSTRAINT "Transactions_currency_id_fkey" FOREIGN KEY ("currency_id") REFERENCES "Currency"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Transactions" ADD CONSTRAINT "Transactions_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "Orders"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Orders" ADD CONSTRAINT "Orders_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "Users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -141,3 +200,9 @@ ALTER TABLE "Orders" ADD CONSTRAINT "Orders_currency_id_fkey" FOREIGN KEY ("curr
 
 -- AddForeignKey
 ALTER TABLE "Orders" ADD CONSTRAINT "Orders_fiat_id_fkey" FOREIGN KEY ("fiat_id") REFERENCES "FiatCurrency"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FavouriteCurrency" ADD CONSTRAINT "FavouriteCurrency_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "Users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FavouriteCurrency" ADD CONSTRAINT "FavouriteCurrency_currency_id_fkey" FOREIGN KEY ("currency_id") REFERENCES "Currency"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -14,30 +14,43 @@ datasource db {
 }
 
 model Users {
-  id                   String           @id @default(uuid())
+  id                   String              @id @default(uuid())
   name                 String
-  email                String           @unique
+  email                String              @unique
   password             String
-  isActivated          Boolean          @default(false)
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @default(now()) @updatedAt
+  isActivated          Boolean             @default(false)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @default(now()) @updatedAt
   WithDrawals          WithDrawals[]
-  sentTransactions     Transactions[]   @relation("SentTransactions")
-  receivedTransactions Transactions[]   @relation("ReceivedTransactions")
+  sentTransactions     Transactions[]      @relation("SentTransactions")
+  receivedTransactions Transactions[]      @relation("ReceivedTransactions")
   Orders               Orders[]
   WalletsAccount       WalletsAccount[]
+  BankAccount          BankAccount?
+  FavouriteCurrency    FavouriteCurrency[]
+}
+
+model BankAccount {
+  id        String   @id @unique @default(uuid())
+  user_id   String   @unique
+  User      Users    @relation(fields: [user_id], references: [id])
+  name      String   @default("")
+  number    String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Currency {
-  id           Int            @id @default(autoincrement())
-  name         String
-  abbreviation String
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @default(now()) @updatedAt
-  WithDrawals  WithDrawals[]
-  Transactions Transactions[]
-  Orders       Orders[]
-  WalletsAsset WalletsAsset[]
+  id                Int                 @id @default(autoincrement())
+  name              String
+  abbreviation      String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @default(now()) @updatedAt
+  WithDrawals       WithDrawals[]
+  Transactions      Transactions[]
+  Orders            Orders[]
+  WalletsAsset      WalletsAsset[]
+  FavouriteCurrency FavouriteCurrency[]
 }
 
 enum WalletsAccountsType {
@@ -56,6 +69,7 @@ model WalletsAccount {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   WalletsAsset WalletsAsset[]
+  WithDrawals  WithDrawals[]
 
   @@unique([user_id, type])
 }
@@ -68,21 +82,25 @@ model WalletsAsset {
   Currency         Currency       @relation(fields: [currency_id], references: [id])
   balance          Decimal        @default(0)
   locked           Decimal        @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
-  @@unique([walletAccount_id, currency_id])
+  @@unique([walletAccount_id])
 }
 
 model WithDrawals {
-  id             Int      @id @default(autoincrement())
-  user_id        String
-  User           Users    @relation(fields: [user_id], references: [id])
-  currency_id    Int
-  Currency       Currency @relation(fields: [currency_id], references: [id])
-  amount         Decimal
-  wallet_address String
-  status         String   @default("pending")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now()) @updatedAt
+  id                Int            @id @default(autoincrement())
+  user_id           String
+  User              Users          @relation(fields: [user_id], references: [id])
+  currency_id       Int
+  Currency          Currency       @relation(fields: [currency_id], references: [id])
+  wallet_account_id String
+  WalletAccount     WalletsAccount @relation(fields: [wallet_account_id], references: [id])
+  amount            Decimal
+  wallet_address    String
+  status            String         @default("pending")
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @default(now()) @updatedAt
 }
 
 enum TransactionType {
@@ -90,25 +108,21 @@ enum TransactionType {
   withdrawal
 }
 
-enum TransactionStatus {
-  pending
-  completed
-}
-
 model Transactions {
-  id           String            @id @default(uuid())
+  id           String          @id @default(uuid())
   form_user_id String
-  FormUser     Users             @relation("SentTransactions", fields: [form_user_id], references: [id])
+  FormUser     Users           @relation("SentTransactions", fields: [form_user_id], references: [id])
   to_user_id   String
-  ToUser       Users             @relation("ReceivedTransactions", fields: [to_user_id], references: [id])
+  ToUser       Users           @relation("ReceivedTransactions", fields: [to_user_id], references: [id])
   currency_id  Int
-  Currency     Currency          @relation(fields: [currency_id], references: [id])
+  Currency     Currency        @relation(fields: [currency_id], references: [id])
+  order_id     String?         @unique
+  Order        Orders?         @relation(fields: [order_id], references: [id])
   amount       Decimal
   price        Decimal
-  type         TransactionType   @default(deposit)
-  status       TransactionStatus @default(pending)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  type         TransactionType @default(deposit)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 }
 
 model FiatCurrency {
@@ -133,17 +147,28 @@ enum OrderStatus {
 }
 
 model Orders {
-  id           String       @id @default(uuid())
+  id           String        @id @default(uuid())
   user_id      String
-  User         Users        @relation(fields: [user_id], references: [id])
+  User         Users         @relation(fields: [user_id], references: [id])
   currency_id  Int
-  Currency     Currency     @relation(fields: [currency_id], references: [id])
+  Currency     Currency      @relation(fields: [currency_id], references: [id])
   fiat_id      Int
-  FiatCurrency FiatCurrency @relation(fields: [fiat_id], references: [id])
-  type         OrderType    @default(buy)
-  status       OrderStatus  @default(pending)
+  FiatCurrency FiatCurrency  @relation(fields: [fiat_id], references: [id])
+  type         OrderType     @default(buy)
+  status       OrderStatus   @default(pending)
   amount       Decimal
   price        Decimal
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @default(now()) @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
+  Transactions Transactions?
+}
+
+model FavouriteCurrency {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  User        Users    @relation(fields: [user_id], references: [id])
+  currency_id Int
+  Currency    Currency @relation(fields: [currency_id], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 }

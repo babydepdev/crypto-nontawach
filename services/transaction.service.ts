@@ -7,9 +7,10 @@ export const createTransactionService = async (data: {
   amount: number;
   price: number;
   type: "deposit" | "withdrawal";
+  order_id: string;
 }) => {
   const result = await prisma.transactions.create({
-    data: { ...data, status: "completed" },
+    data,
   });
 
   return result;

@@ -1,15 +1,17 @@
 import express from "express";
 import {
   cancelOrderController,
-  createOrderController,
-  listAllOrdersBuyController,
-  listAllOrdersSellController,
+  createOrderBuyController,
+  createOrderSellController,
+  readOrdersBuyController,
+  readOrdersSellController,
 } from "../controllers/order.controller";
 const orderRouter = express.Router();
 
-orderRouter.post("/order", createOrderController);
-orderRouter.get("/orders/buy", listAllOrdersBuyController);
-orderRouter.get("/orders/sell", listAllOrdersSellController);
+orderRouter.post("/order/buy", createOrderBuyController);
+orderRouter.post("/order/sell", createOrderSellController);
+orderRouter.get("/orders/:id/buy", readOrdersBuyController);
+orderRouter.get("/orders/:id/sell", readOrdersSellController);
 orderRouter.patch("/order/:id", cancelOrderController);
 
 export default orderRouter;

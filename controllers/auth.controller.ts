@@ -6,6 +6,7 @@ import {
 import { CatchAsyncError } from "../utils/catchAsyncError";
 import ErrorHandler from "../utils/ErrorHandler";
 import bcrypt from "bcryptjs";
+import { createWalletService } from "../services/wallet.service";
 
 export const registerController = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -24,6 +25,12 @@ export const registerController = CatchAsyncError(
         email,
         password: hashedPassword,
       });
+
+      if (result) {
+        await createWalletService({
+          user_id: result.id,
+        });
+      }
 
       res.status(201).json({
         message: "User created successfully",

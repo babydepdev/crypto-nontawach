@@ -12,10 +12,11 @@ export const createOrderService = async (data: {
   const result = await prisma.orders.create({
     data: data,
   });
+
   return result;
 };
 
-export const listAllOrderTypeService = async (
+export const readOrderTypeService = async (
   user_id: string,
   type: "buy" | "sell"
 ) => {
